@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>House System - QR Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @media print {
+            .no-print { display: none; }
+            .print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+            .qr-card { border: 1px solid #ccc; padding: 20px; page-break-inside: avoid; }
+        }
+        .qr-card { background: white; color: black; padding: 20px; border-radius: 10px; text-align: center; }
+        .qr-card canvas, .qr-card img { margin: 0 auto; display: block; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white p-8">
+    <div class="max-w-4xl mx-auto space-y-8">
+        <header class="flex justify-between items-center no-print">
+            <div>
+                <h1 class="text-3xl font-bold">QR Generator</h1>
+                <p class="text-slate-400">Generate printable A4 sheets for students</p>
+            </div>
+            <button onclick="window.print()" class="btn-primary">Print Now</button>
+        </header>
+        <div class="glass p-6 rounded-2xl space-y-4 no-print">
+            <h2 class="text-xl font-bold">Add Student</h2>
+            <div class="grid grid-cols-4 gap-4">
+                <input type="text" id="name" class="input-field" placeholder="Full Name">
+                <input type="text" id="dept" class="input-field" placeholder="Department">
+                <select id="house" class="input-field">
+                    <option>Phoenix</option>
+                    <option>Dragon</option>
+                    <option>Griffon</option>
+                    <option>Unicorn</option>
+                </select>
+                <button onclick="addQr()" class="btn-primary">Add to Sheet</button>
+                <button onclick="addTeacherBypass()" class="btn-secondary bg-indigo-600/20 text-indigo-400 border-indigo-500/30">Teacher Bypass QR</button>
+            </div>
+        </div>
+        <div id="print-area" class="print-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- QR Cards appear here -->
+        </div>
+    </div>
+    <script>
+        function addQr() {
+            const name = document.getElementById('name').value;
+            const dept = document.getElementById('dept').value;
+            const house = document.getElementById('house').value;
+            
+            if (!name || !dept) return;
+            const container = document.getElementById('print-area');
+            const card = document.createElement('div');
+            card.className = 'qr-card shadow-lg';
+            
+            const qrId = 'qr-' + Date.now();
+            card.innerHTML = `
+                <div id="${qrId}" class="mb-4"></div>
+                <div class="text-lg font-bold uppercase">${name}</div>
+                <div class="text-sm text-gray-500">${dept} • ${house}</div>
+                <div class="text-[10px] text-gray-400 mt-2">SECURE HOUSE SYSTEM ID</div>
+            `;
+            
+            container.appendChild(card);
+            new QRCode(document.getElementById(qrId), {
+                text: `${name} | ${dept} | ${house}`,
+                width: 180,
+                height: 180,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+            // Clear inputs
+            document.getElementById('name').value = '';
+        }
+        function addTeacherBypass() {
+            const container = document.getElementById('print-area');
+            const card = document.createElement('div');
+            card.className = 'qr-card shadow-lg border-4 border-indigo-500';
+            
+            const qrId = 'qr-t-' + Date.now();
+            card.innerHTML = `
+                <div id="${qrId}" class="mb-4"></div>
+                <div class="text-lg font-bold uppercase">TEACHER BYPASS</div>
+                <div class="text-sm text-gray-500">Fast Access Key</div>
+                <div class="text-[10px] text-gray-400 mt-2">ADMIN USE ONLY</div>
+            `;
+            
+            container.appendChild(card);
+            new QRCode(document.getElementById(qrId), {
+                text: `TEACHER_BYPASS_TOKEN_AX7`,
+                width: 180,
+                height: 180,
+                colorDark : "#4f46e5",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+        // Add 2 default examples
+        window.onload = () => {
+             document.getElementById('name').value = 'John Doe';
+             document.getElementById('dept').value = 'Computer Science';
+             addQr();
+             document.getElementById('name').value = 'Alice Smith';
+             document.getElementById('dept').value = 'Engineering';
+             addQr();
+        };
+    </script>
+</body>
+</html>
