@@ -1,0 +1,134 @@
+/* Base Utilities */
+:root {
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.1);
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    background: radial-gradient(circle at top right, #1e1b4b, #020617 60%);
+    min-height: 100vh;
+}
+.font-outfit { font-family: 'Outfit', sans-serif; }
+/* Components */
+.glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+}
+.glass-dark {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.nav-link {
+    padding: 0.5rem 1rem;
+    color: #94a3b8;
+    transition: color 0.2s;
+    font-weight: 600;
+}
+.btn-primary {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    font-weight: 700;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s;
+    border: 1px solid rgba(79, 70, 229, 0.3);
+}
+.btn-primary:active { transform: scale(0.95); }
+.btn-primary:hover { box-shadow: 0 0 20px rgba(124, 58, 237, 0.4); }
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    font-weight: 700;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s;
+}
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+.btn-ghost {
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    color: #94a3b8;
+    transition: all 0.2s;
+}
+.btn-ghost:hover { color: white; background: #1e293b; }
+.input-field {
+    background: rgba(2, 6, 23, 0.8);
+    border: 1px solid #334155;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    outline: none;
+    transition: all 0.2s;
+    color: white;
+}
+.input-field:focus { border-color: #6366f1; }
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+/* TV Specifics */
+#tv-dashboard {
+    background: linear-gradient(135deg, #020617, #0f172a);
+    cursor: none;
+}
+.leaderboard-item {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ticker-content {
+    animation: ticker 40s linear infinite;
+}
+@keyframes ticker {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+/* Achievement Popups */
+.point-popup {
+    perspective: 1000px;
+}
+.paper-burst {
+    position: absolute;
+    pointer-events: none;
+}
+.chip {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.chip-inactive {
+    border-color: #334155;
+    background: rgba(15, 23, 42, 0.5);
+    color: #64748b;
+}
+.chip-active {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+}
+/* Tailwind-ish Utilities (Since I am not using Tailwind, I define them here or use style tags) */
+.col-span-8 { grid-column: span 8 / span 8; }
+.col-span-4 { grid-column: span 4 / span 4; }
+.col-span-12 { grid-column: span 12 / span 12; }
+.col-span-5 { grid-column: span 5 / span 5; }
+.col-span-7 { grid-column: span 7 / span 7; }
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+/* Media Queries for 16:9 TV */
+@media (aspect-ratio: 16/9) {
+    #tv-dashboard { font-size: 1.2vw; }
+}
