@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College House System - Points & Leaderboard</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Scripts -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Firebase SDK (Modular) -->
+    <script type="module" src="firebase-config.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-outfit overflow-x-hidden">
+    <!-- App Shell -->
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Navigation (Hidden on TV Dashboard) -->
+        <nav id="main-nav" class="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="trophy" class="text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight">House <span class="text-indigo-400">System</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="router.navigate('teacher')" class="nav-link" id="nav-teacher">Teacher</button>
+                <button onclick="router.navigate('admin')" class="nav-link" id="nav-admin">Admin</button>
+                <button onclick="router.navigate('tv')" class="btn-primary flex items-center gap-2">
+                    <i data-lucide="tv" class="w-4 h-4"></i>
+                    TV Dashboard
+                </button>
+            </div>
+        </nav>
+        <!-- Main Content Area -->
+        <main id="view-container" class="flex-grow">
+            <!-- Dynamic Content Loaded Here -->
+        </main>
+        <!-- Global Achievement Popups -->
+        <div id="popup-layer" class="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-6"></div>
+    </div>
+    <!-- Templates -->
+    <template id="tmpl-teacher">
+        <div class="p-6 max-w-4xl mx-auto space-y-8 animate-fade-in">
+            <header class="flex justify-between items-end">
+                <div>
+                    <h2 class="text-3xl font-bold">Award Points</h2>
+                    <p class="text-slate-400">Scan QR or enter student details manually</p>
+                </div>
+                <div id="teacher-stats" class="text-right">
+                    <span class="text-sm text-slate-400 uppercase tracking-widest">Sessions Points</span>
+                    <div class="text-2xl font-bold text-indigo-400" id="teacher-points-counter">0</div>
+                </div>
+            </header>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Scanner Section -->
+                <div class="glass p-6 rounded-2xl relative overflow-hidden group">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i data-lucide="scan-line" class="text-indigo-400"></i>
+                        <h3 class="font-semibold">QR Scanner</h3>
+                    </div>
+                    <div id="reader" class="rounded-xl overflow-hidden bg-black aspect-video border border-slate-700"></div>
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="scanner.start()" class="flex-grow btn-secondary">Start Scanner</button>
+                        <button onclick="scanner.stop()" class="btn-ghost"><i data-lucide="power"></i></button>
+                    </div>
+                </div>
+                <!-- Manual Entry Section -->
+                <div class="glass p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center gap-3 mb-2">
+                        <i data-lucide="user-plus" class="text-indigo-400"></i>
+                        <h3 class="font-semibold">Manual Entry</h3>
+                    </div>
+                    
+                    <div class="relative">
+                        <label class="text-xs text-slate-400 uppercase mb-1 block">Student Name</label>
+                        <input type="text" id="student-search" placeholder="Type first 3 letters..." class="input-field w-full">
+                        <div id="search-suggestions" class="absolute top-full left-0 w-full mt-2 glass border border-slate-700 rounded-xl overflow-hidden hidden z-10">
+                            <!-- Suggestions list -->
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-slate-400 uppercase mb-1 block">House</label>
+                            <input type="text" id="manual-house" readonly class="input-field w-full bg-slate-900/50" placeholder="Auto-fetched">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 uppercase mb-1 block">Department</label>
+                            <input type="text" id="manual-dept" readonly class="input-field w-full bg-slate-900/50" placeholder="Auto-fetched">
+                        </div>
+                    </div>
+                    <div class="pt-4 border-t border-slate-800">
+                        <label class="text-xs text-slate-400 uppercase mb-3 block">Category</label>
+                        <div class="grid grid-cols-2 gap-2" id="category-chips">
+                            <!-- Dynamic categories -->
+                        </div>
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button onclick="pointsLogic.award(10)" class="flex-grow btn-primary bg-emerald-600 hover:bg-emerald-500 border-emerald-500/50">
+                            +10 Positive
+                        </button>
+                        <button onclick="pointsLogic.award(-5)" class="flex-grow btn-secondary bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border-rose-500/30">
+                            -5 Negative
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Recent Activity Table -->
+            <div class="glass rounded-2xl overflow-hidden">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                    <h3 class="font-semibold">Session Logs</h3>
+                    <span class="text-xs text-slate-400" id="log-count">0 entries</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="text-xs text-slate-400 uppercase bg-slate-900/50">
+                            <tr>
+                                <th class="px-6 py-3">Student</th>
+                                <th class="px-6 py-3">House</th>
+                                <th class="px-6 py-3">Category</th>
+                                <th class="px-6 py-3 text-right">Points</th>
+                            </tr>
+                        </thead>
+                        <tbody id="session-logs">
+                            <!-- Logs will appear here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-admin">
+        <div class="p-6 max-w-6xl mx-auto space-y-8 animate-fade-in">
+             <header>
+                <h2 class="text-3xl font-bold">Administrator</h2>
+                <p class="text-slate-400">Manage houses, departments, and TV settings</p>
+            </header>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- House Management -->
+                <div class="glass p-6 rounded-2xl space-y-6 md:col-span-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-bold flex items-center gap-2">
+                            <i data-lucide="shield" class="text-indigo-400"></i>
+                            Houses & Colors
+                        </h3>
+                        <button class="btn-ghost text-xs" onclick="adminLogic.addHouse()">+ Add House</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="house-list">
+                        <!-- House Cards -->
+                    </div>
+                </div>
+                <!-- Department Management -->
+                <div class="glass p-6 rounded-2xl space-y-4">
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="building" class="text-indigo-400"></i>
+                        Departments
+                    </h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-dept-name" class="input-field flex-grow" placeholder="Dept Name">
+                        <button onclick="adminLogic.addDept()" class="btn-primary px-3"><i data-lucide="plus"></i></button>
+                    </div>
+                    <ul id="dept-list" class="space-y-2">
+                        <!-- Dept items -->
+                    </ul>
+                </div>
+            </div>
+            <!-- TV Dashboard Settings -->
+            <div class="glass p-6 rounded-2xl space-y-6">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="layout" class="text-indigo-400"></i>
+                    TV Dashboard Configuration
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-xs text-slate-400 uppercase">College Name</label>
+                        <input type="text" id="tv-college-name" class="input-field w-full" placeholder="Enter College Name">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs text-slate-400 uppercase">Sub Topic</label>
+                        <input type="text" id="tv-sub-topic" class="input-field w-full" placeholder="Annual Point System">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs text-slate-400 uppercase">Background Image</label>
+                        <div class="flex items-center gap-2">
+                             <input type="file" id="tv-bg-upload" class="hidden" accept="image/*">
+                             <button onclick="document.getElementById('tv-bg-upload').click()" class="btn-secondary w-full text-xs">Upload BG</button>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs text-slate-400 uppercase">Founder Photo</label>
+                        <div class="flex items-center gap-2">
+                             <input type="file" id="tv-founder-upload" class="hidden" accept="image/*">
+                             <button onclick="document.getElementById('tv-founder-upload').click()" class="btn-secondary w-full text-xs">Upload Photo</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Manual Announcement -->
+            <div class="glass p-6 rounded-2xl space-y-4">
+                 <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="megaphone" class="text-indigo-400"></i>
+                    Special Achievement Announcement
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <input type="text" id="ann-student" class="input-field" placeholder="Student Name">
+                    <input type="text" id="ann-house" class="input-field" placeholder="House">
+                    <input type="text" id="ann-achievement" class="input-field" placeholder="Achievement (e.g. Winner of 100m)">
+                    <textarea id="ann-message" class="input-field lg:col-span-2" placeholder="Prestigious wording/message..."></textarea>
+                    <div class="flex items-center gap-4">
+                        <input type="file" id="ann-photo" class="hidden" accept="image/*">
+                        <button onclick="document.getElementById('ann-photo').click()" class="btn-secondary flex-grow">Student Photo</button>
+                        <button onclick="adminLogic.sendAnnouncement()" class="btn-primary px-8">Push to TV</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template id="tmpl-tv">
+        <div id="tv-dashboard" class="fixed inset-0 bg-slate-950 overflow-hidden text-white flex flex-col p-8 transition-all duration-1000" style="aspect-ratio: 16/9;">
+            <!-- Background Layer -->
+            <div id="tv-background" class="absolute inset-0 z-0 opacity-20 transition-opacity duration-1000 blur-sm scale-105"></div>
+            
+            <!-- Header -->
+            <header class="relative z-10 flex justify-between items-start mb-12">
+                <div class="flex items-center gap-6">
+                    <img id="tv-college-logo" src="https://via.placeholder.com/100" class="w-24 h-24 object-contain" alt="Logo">
+                    <div>
+                        <h1 id="tv-display-college-name" class="text-5xl font-black tracking-tighter uppercase italic leading-none">Global Tech Institute</h1>
+                        <p id="tv-display-sub-topic" class="text-2xl text-indigo-400 font-semibold tracking-widest uppercase mt-2">House Points Championship</p>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div id="current-time" class="text-3xl font-mono font-bold">20:30:45</div>
+                    <div class="text-slate-400 uppercase tracking-tighter text-sm mt-1">Thursday Weekly Reset</div>
+                </div>
+            </header>
+            <!-- Main Dynamic Area -->
+            <div class="relative z-10 flex-grow grid grid-cols-12 gap-8">
+                <!-- Leaderboard (Active for most of the time) -->
+                <div class="col-span-8 flex flex-col">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="h-10 w-2 bg-indigo-500 rounded-full"></div>
+                        <h2 class="text-3xl font-bold uppercase tracking-tight">Live Leaderboard</h2>
+                        <div class="ml-auto flex gap-4">
+                             <button onclick="router.toggleAnnual()" id="btn-weekly" class="px-4 py-2 glass-dark rounded-full text-emerald-400 font-bold border border-emerald-500/30">WEEKLY</button>
+                             <button onclick="router.toggleAnnual()" id="btn-annual" class="px-4 py-2 glass-dark rounded-full text-slate-500 font-bold border border-transparent">ANNUAL</button>
+                        </div>
+                    </div>
+                    <div id="tv-leaderboard-container" class="space-y-4 pr-4 overflow-hidden">
+                        <!-- Dynamic leaderboard items -->
+                    </div>
+                </div>
+                <!-- Stats Sidebar -->
+                <div class="col-span-4 space-y-6">
+                     <!-- Weekly Winners (Top 3 Houses) -->
+                     <div class="glass-dark p-6 rounded-3xl border border-white/5 relative overflow-hidden group">
+                         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                             <i data-lucide="crown" class="w-24 h-24"></i>
+                         </div>
+                         <h3 class="text-indigo-400 font-bold uppercase tracking-widest text-sm mb-4">Weekly Standings</h3>
+                         <div id="tv-winners-list" class="space-y-4">
+                             <!-- Winner, Runner, Second Runner -->
+                         </div>
+                     </div>
+                     <!-- Star Awards -->
+                     <div class="grid grid-cols-1 gap-4">
+                         <div class="glass-dark p-5 rounded-3xl border border-white/5">
+                             <h4 class="text-xs text-slate-400 uppercase mb-2">Star Teacher of the Week</h4>
+                             <div class="flex items-center gap-3">
+                                 <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                     <i data-lucide="star" class="text-amber-500 w-5 h-5"></i>
+                                 </div>
+                                 <div>
+                                     <div id="tv-star-teacher" class="font-bold">Prof. Sarah Jenkins</div>
+                                     <div class="text-xs text-slate-500 uppercase">Science Dept • 124 points awarded</div>
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="glass-dark p-5 rounded-3xl border border-white/5">
+                             <h4 class="text-xs text-slate-400 uppercase mb-2">Most Active Department</h4>
+                             <div class="flex items-center gap-3">
+                                 <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                                     <i data-lucide="flame" class="text-indigo-500 w-5 h-5"></i>
+                                 </div>
+                                 <div>
+                                     <div id="tv-star-dept" class="font-bold">Engineering</div>
+                                     <div class="text-xs text-slate-500 uppercase">450 points this week</div>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+                </div>
+            </div>
+            <!-- Footer Ticker -->
+            <footer class="relative z-10 mt-8 h-12 overflow-hidden glass-dark rounded-2xl flex items-center px-6">
+                <div class="font-bold text-indigo-400 uppercase tracking-widest mr-4 flex-shrink-0">Breaking Announcement:</div>
+                <div class="ticker-content flex gap-12 whitespace-nowrap text-lg text-slate-300">
+                    <span>Congratulations to Phoenix House for winning the Academic Achievement award!</span>
+                    <span>Reminder: Points reset every Thursday at 00:00.</span>
+                    <span>Top student of Computer Science: John Doe (85 pts)</span>
+                </div>
+            </footer>
+            <!-- Animated Achievement Slide (Overlays Main Content) -->
+            <div id="tv-announcement-slide" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-20 hidden">
+                <div class="max-w-6xl w-full grid grid-cols-12 gap-12 items-center">
+                    <div class="col-span-5">
+                         <div class="relative group">
+                            <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+                            <img id="ann-slide-photo" src="https://via.placeholder.com/400x500" class="relative rounded-2xl w-full aspect-[4/5] object-cover border border-white/10" alt="Student">
+                         </div>
+                    </div>
+                    <div class="col-span-7 space-y-8">
+                        <div id="ann-slide-house-tag" class="inline-block px-6 py-2 rounded-full text-xl font-bold tracking-widest uppercase">PHOENIX HOUSE</div>
+                        <h2 id="ann-slide-title" class="text-7xl font-black uppercase leading-tight italic">OUTSTANDING ACHIEVEMENT</h2>
+                        <div class="space-y-4">
+                            <p id="ann-slide-student" class="text-4xl font-bold text-white">Alex Rivera</p>
+                            <p id="ann-slide-dept" class="text-2xl text-slate-400 uppercase font-semibold">Department of Information Technology</p>
+                        </div>
+                        <p id="ann-slide-message" class="text-3xl text-slate-300 italic leading-relaxed">"Demonstrated exceptional leadership during the annual college assembly."</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <script src="script.js"></script>
+    <script src="animations.js"></script>
+</body>
+</html>
